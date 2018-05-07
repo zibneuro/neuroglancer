@@ -56,6 +56,7 @@ const DEFAULT_DATA_SOURCES = exports.DEFAULT_DATA_SOURCES = [
   'neuroglancer/datasource/nifti',
   {source: 'neuroglancer/datasource/vtk', register: null},
   {source: 'neuroglancer/datasource/csv', register: null},
+  'neuroglancer/datasource/local'
 ];
 
 const DEFAULT_SUPPORTED_LAYERS = exports.DEFAULT_SUPPORTED_LAYERS = [
