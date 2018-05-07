@@ -18,6 +18,7 @@ import {AxesLineHelper} from 'neuroglancer/axes_lines';
 import {DisplayContext} from 'neuroglancer/display_context';
 import {makeRenderedPanelVisibleLayerTracker, MouseSelectionState, VisibleRenderLayerTracker} from 'neuroglancer/layer';
 import {PickIDManager} from 'neuroglancer/object_picking';
+import {ObjectManager} from 'neuroglancer/perspective_view/ObjectManager';
 import {PERSPECTIVE_VIEW_ADD_LAYER_RPC_ID, PERSPECTIVE_VIEW_REMOVE_LAYER_RPC_ID, PERSPECTIVE_VIEW_RPC_ID} from 'neuroglancer/perspective_view/base';
 import {PerspectiveViewRenderContext, PerspectiveViewRenderLayer} from 'neuroglancer/perspective_view/render_layer';
 import {RenderedDataPanel, RenderedDataViewerState} from 'neuroglancer/rendered_data_panel';
@@ -122,6 +123,10 @@ class PerspectiveViewState extends PerspectiveViewStateBase {}
 export class PerspectivePanel extends RenderedDataPanel {
   viewer: PerspectiveViewerState;
 
+// VISUALIZATION Data START
+scroll  = document.createElement('div');
+content = document.createElement('div');
+// VISUALIZATION DATA END
   protected visibleLayerTracker: Owned<VisibleRenderLayerTracker<PerspectiveViewRenderLayer>>;
 
   /**
@@ -150,6 +155,7 @@ export class PerspectivePanel extends RenderedDataPanel {
   width = 0;
   height = 0;
   protected pickIDs = new PickIDManager();
+  protected objectManager:ObjectManager;
   private axesLineHelper = this.registerDisposer(AxesLineHelper.get(this.gl));
   sliceViewRenderHelper =
       this.registerDisposer(SliceViewRenderHelper.get(this.gl, perspectivePanelEmit));
@@ -174,6 +180,8 @@ export class PerspectivePanel extends RenderedDataPanel {
 
   constructor(context: DisplayContext, element: HTMLElement, viewer: PerspectiveViewerState) {
     super(context, element, viewer);
+
+    this.objectManager= new ObjectManager(viewer);
     this.registerDisposer(this.navigationState.changed.add(() => {
       this.viewportChanged();
     }));
@@ -234,6 +242,93 @@ export class PerspectivePanel extends RenderedDataPanel {
       showSliceViewsLabel.appendChild(showSliceViewsCheckbox.element);
       this.element.appendChild(showSliceViewsLabel);
     }
+    //this.element.appendChild(document.createTextNode('SlicesSumit'));
+    //VISUALIZATION SETTINGS PANEL START
+    //let {content,scroll,labeledData,bindings} = this;
+    let {content,scroll,objectManager} = this;
+    let panel = document.createElement("button");
+    panel.className = 'togglediv';
+    //panel.id="searchpanel"
+    panel.textContent = 'Search Panel';
+    panel.value = 'searchpanel';
+    this.registerEventListener(panel, 'click', () => {
+      //console.log("inside panel");
+      panel.classList.toggle("active");
+      let e1=document.getElementById("searchpanel")!;
+    //  console.log(e1);
+      if (e1.style.display === "block") {
+           e1.style.display = "none";
+       } else {
+           e1.style.display = "block";
+       }
+       let e2=document.getElementById('visualizationDiv')!;
+       e2.parentNode!.removeChild(e2);
+    this.updateList(objectManager.getObjectNames(),objectManager.getSelectedObjectNames());
+      });
+    this.element.appendChild(document.createElement("br"));
+    let searchpanel = document.createElement("div");
+    searchpanel.className = 'panel';
+    searchpanel.id="searchpanel"
+
+    content.classList.add('perspective-panel-control');
+    scroll.classList.add('perspective-panel-control-container');
+    let allButton = document.createElement("button");
+    allButton.className = 'button';
+    allButton.textContent = 'all';
+    allButton.value = 'all';
+    this.registerEventListener(allButton, 'click', () => {
+      this.objectManager.display(allButton.value);
+      });
+    content.appendChild(allButton);
+    let noneButton = document.createElement("button");
+    noneButton.className = 'button';
+    noneButton.textContent = 'none';
+    noneButton.value = 'none';
+    this.registerEventListener(noneButton, 'click', () => {
+      this.objectManager.display(noneButton.value);
+      });
+    content.appendChild(noneButton);
+    let selectedButton = document.createElement("button");
+    selectedButton.className = 'button';
+    selectedButton.textContent = 'selected';
+    selectedButton.value = 'selected';
+    this.registerEventListener(selectedButton, 'click', () => {
+      this.objectManager.display(selectedButton.value);
+      });
+    content.appendChild(selectedButton);
+    let invertButton = document.createElement("button");
+    invertButton.className = 'button';
+    invertButton.textContent = 'inverted';
+    invertButton.value = 'inverted';
+    this.registerEventListener(invertButton, 'click', () => {
+      this.objectManager.display(invertButton.value);
+      });
+    content.appendChild(invertButton);
+    content.appendChild(document.createElement("br"));
+    content.appendChild(document.createElement("br"));
+    let searchInput = document.createElement("input");
+    searchInput.type = "text";
+    searchInput.className = "input";
+    searchInput.placeholder = "Search...";
+    this.registerEventListener(searchInput, 'keypress', () => {
+      let e1=document.getElementById('visualizationDiv')!;
+      e1.parentNode!.removeChild(e1);
+     let filteredSet=this.objectManager.searchText(searchInput.value);
+     this.updateList(filteredSet,this.objectManager.getSelectedObjectNames());
+    });
+    content.appendChild(searchInput);
+    content.appendChild(document.createElement("br"));
+    content.appendChild(document.createElement("br"));
+
+  this.updateList(this.objectManager.getObjectNames(),this.objectManager.getSelectedObjectNames());
+
+
+    content.appendChild(scroll);
+    this.element.appendChild(panel);
+    searchpanel.appendChild(content);
+    this.element.appendChild(searchpanel);
+    //VISUALIZATION SETTINGS PANEL END;
+
     this.registerDisposer(viewer.orthographicProjection.changed.add(() => this.scheduleRedraw()));
     this.registerDisposer(viewer.showScaleBar.changed.add(() => this.scheduleRedraw()));
     this.registerDisposer(viewer.showSliceViews.changed.add(() => this.scheduleRedraw()));
@@ -242,6 +337,42 @@ export class PerspectivePanel extends RenderedDataPanel {
         viewer.crossSectionBackgroundColor.changed.add(() => this.scheduleRedraw()));
   }
 
+  private updateList(selectionList: Set<string>, selected: Set<string>){
+    let dl= document.createElement('div');
+    dl.id='visualizationDiv';
+    dl.className='dl';
+    dl.appendChild(document.createElement("br"));
+    for (let data of selectionList) {
+      let visDiv= document.createElement('div');
+      visDiv.className='visDiv';
+      let checkbox = document.createElement('input');
+      checkbox.type = "checkbox";
+      checkbox.name = data;
+      checkbox.value = data;
+    if(selected!.has(data)){
+      checkbox.checked=true;
+    }
+     let {objectManager}=this;
+     checkbox.addEventListener('change', function(this: HTMLInputElement) {
+      let value = this.value;
+       if(!this.checked && objectManager.getObjectNames().has(value)){
+         objectManager.removeSelectedObject(value);
+       }
+       else{
+         objectManager.addSelectedObject(value);
+       }
+        //console.log(this.objectManager.labeledData!.selected);
+    });
+      visDiv.appendChild(checkbox);
+      let fieldName = document.createElement('span');
+      fieldName.textContent = data;
+      fieldName.className="span";
+      visDiv.appendChild(fieldName);
+      dl.appendChild(visDiv);
+      dl.appendChild(document.createElement("br"));
+    }
+      this.scroll.appendChild(dl);
+  }
   get navigationState() {
     return this.viewer.navigationState;
   }
