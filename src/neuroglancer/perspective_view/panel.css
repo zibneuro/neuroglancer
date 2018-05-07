@@ -21,3 +21,100 @@ label.perspective-panel-show-slice-views {
 input.perspective-panel-show-slice-views {
   pointer-events: all;
 }
+
+.perspective-panel-control {
+  overflow-y: hidden;
+  width: 280px;
+  max-height: 80vh;
+  overflow-x: scroll;
+}
+
+.perspective-panel-control-container {
+  overflow-y: scroll;
+  max-height: 80vh;
+  overflow-x: scroll;
+}
+
+.perspective-panel-control .definition-outer-container {
+  display: block;
+}
+
+.perspective-panel-control .definition-container {
+  display: inline-block;
+  white-space: nowrap;
+}
+
+.perspective-panel-control .input[type=text] {
+  margin-left: 5px;
+  width: 250px;
+  height: 30px;
+}
+.perspective-panel-control .button {
+    background-color: white;
+    border: none;
+    color: black;
+    padding: 5px 14px;
+    margin-top: 15px;
+    margin-left: 4px;
+    border-radius: 6px;
+    border: 2px solid #e7e7e7;
+    text-align: center;
+    display: inline-block;
+    font-size: 12px;
+}
+
+.span {
+  color: black;
+  font-family:arial;
+  white-space: nowrap;
+  font-size: 10pt;
+  display: inline;
+}
+.perspective-panel-control .button:hover {
+    background-color: #e7e7e7; /* Green */
+    color: black;
+}
+
+.togglediv {
+    background-color: #eee;
+    color: #444;
+    cursor: pointer;
+    padding: 20px;
+    width: 300px;
+    border: 2px;
+    text-align: left;
+    outline: none;
+    font-size: 15px;
+    transition: 0.4s;
+}
+
+.active, .togglediv:hover {
+    background-color: #ccc;
+}
+
+.togglediv:after {
+    content: '\002B';
+    color: #777;
+    font-weight: bold;
+    float: right;
+    margin-left: 5px;
+}
+.active:after {
+    content: "\2212";
+}
+.panel {
+    padding: 0 18px;
+    background-color: white;
+    width: 264px;
+    display: none;
+    color: black;
+    height: 60vh;
+    max-height: 80vh;
+    overflow-y: hidden;
+    overflow-x: hidden;
+    transition: max-height 0.2s ease-out;
+}
+ .visDiv {
+   white-space: nowrap;
+   display:inline
+}
