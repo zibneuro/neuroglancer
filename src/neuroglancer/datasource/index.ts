@@ -17,6 +17,7 @@
 import {MultiscaleAnnotationSource} from 'neuroglancer/annotation/frontend_source';
 import {ChunkManager} from 'neuroglancer/chunk_manager/frontend';
 import {MeshSource} from 'neuroglancer/mesh/frontend';
+import {ObjectSource} from 'neuroglancer/perspective_view/ObjectManager';
 import {SkeletonSource} from 'neuroglancer/skeleton/frontend';
 import {VectorGraphicsType} from 'neuroglancer/sliceview/vector_graphics/base';
 import {MultiscaleVectorGraphicsChunkSource} from 'neuroglancer/sliceview/vector_graphics/frontend';
@@ -85,6 +86,8 @@ export interface DataSource {
           Promise<MultiscaleVectorGraphicsChunkSource>|MultiscaleVectorGraphicsChunkSource;
   getMeshSource?(chunkManager: ChunkManager, path: string, cancellationToken: CancellationToken):
       Promise<MeshSource>|MeshSource;
+  get3DObject?(path: string, cancellationToken: CancellationToken):
+          Promise<ObjectSource>|ObjectSource;
   getSkeletonSource?
       (chunkManager: ChunkManager, path: string, cancellationToken: CancellationToken):
           Promise<SkeletonSource>|SkeletonSource;
@@ -166,6 +169,12 @@ export class DataSourceProvider extends RefCounted {
     });
   }
 
+  get3DObject(url: string, cancellationToken = uncancelableToken) {
+    let [dataSource, path] = this.getDataSource(url);
+    return new Promise<ObjectSource>(resolve => {
+      resolve(dataSource.get3DObject!(path, cancellationToken));
+    });
+  }
   getSkeletonSource(
       chunkManager: ChunkManager, url: string, cancellationToken = uncancelableToken) {
     let [dataSource, path] = this.getDataSource(url);
