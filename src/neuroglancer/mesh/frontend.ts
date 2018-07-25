@@ -149,6 +149,12 @@ export class MeshLayer extends PerspectiveViewRenderLayer {
       // Skip drawing.
       return;
     }
+    /*const color = vec4.create();
+    color[0] = 255*0.03;
+    color[1] = 255*0.03;
+    color[2] = 255*0.03;
+    color[3] = 0.05;
+    displayState.objectAlpha.value=0.5;*/
     let shader = this.getShader(renderContext.emitter);
     shader.bind();
     meshShaderManager.beginLayer(gl, shader, renderContext);
@@ -161,7 +167,13 @@ export class MeshLayer extends PerspectiveViewRenderLayer {
 
     forEachSegmentToDraw(displayState, objectChunks, (rootObjectId, objectId, fragments) => {
       if (renderContext.emitColor) {
-        meshShaderManager.setColor(gl, shader, getObjectColor(displayState, rootObjectId, alpha));
+        let color=renderContext.objectManager.objectColor(objectId);
+        if(color!=null){
+          meshShaderManager.setColor(gl, shader, color);
+        }
+        else {
+          meshShaderManager.setColor(gl, shader, getObjectColor(displayState, rootObjectId, alpha));
+        }
       }
       if (renderContext.emitPickID) {
         meshShaderManager.setPickID(gl, shader, pickIDs.registerUint64(this, objectId));
