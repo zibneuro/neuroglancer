@@ -24,6 +24,7 @@ import {PerspectiveViewRenderContext, PerspectiveViewRenderLayer} from 'neurogla
 import {RenderedDataPanel, RenderedDataViewerState} from 'neuroglancer/rendered_data_panel';
 import {SliceView, SliceViewRenderHelper} from 'neuroglancer/sliceview/frontend';
 import {TrackableBoolean, TrackableBooleanCheckbox} from 'neuroglancer/trackable_boolean';
+import {TrackableValue} from 'neuroglancer/trackable_value';
 import {TrackableRGB} from 'neuroglancer/util/color';
 import {Owned} from 'neuroglancer/util/disposable';
 import {ActionEvent, registerActionListener} from 'neuroglancer/util/event_action_map';
@@ -35,7 +36,7 @@ import {GL_BLEND, GL_COLOR_BUFFER_BIT, GL_DEPTH_TEST, GL_LEQUAL, GL_LESS, GL_ONE
 import {DepthBuffer, FramebufferConfiguration, makeTextureBuffers, OffscreenCopyHelper, TextureBuffer} from 'neuroglancer/webgl/offscreen';
 import {ShaderBuilder} from 'neuroglancer/webgl/shader';
 import {glsl_packFloat01ToFixedPoint, unpackFloat01FromFixedPoint} from 'neuroglancer/webgl/shader_lib';
-import {ScaleBarTexture} from 'neuroglancer/widget/scale_bar';
+import {ScaleBarOptions, ScaleBarTexture} from 'neuroglancer/widget/scale_bar';
 import {RPC, SharedObject} from 'neuroglancer/worker_rpc';
 
 require('neuroglancer/noselect.css');
@@ -45,6 +46,7 @@ export interface PerspectiveViewerState extends RenderedDataViewerState {
   orthographicProjection: TrackableBoolean;
   showSliceViews: TrackableBoolean;
   showScaleBar: TrackableBoolean;
+  scaleBarOptions: TrackableValue<ScaleBarOptions>;
   showSliceViewsCheckbox?: boolean;
   crossSectionBackgroundColor: TrackableRGB;
   rpc: RPC;
@@ -126,6 +128,8 @@ export class PerspectivePanel extends RenderedDataPanel {
 // VISUALIZATION Data START
 scroll  = document.createElement('div');
 content = document.createElement('div');
+//objectscroll  = document.createElement('div');
+objectcontent = document.createElement('div');
 // VISUALIZATION DATA END
   protected visibleLayerTracker: Owned<VisibleRenderLayerTracker<PerspectiveViewRenderLayer>>;
 
@@ -245,7 +249,7 @@ content = document.createElement('div');
     //this.element.appendChild(document.createTextNode('SlicesSumit'));
     //VISUALIZATION SETTINGS PANEL START
     //let {content,scroll,labeledData,bindings} = this;
-    let {content,scroll,objectManager} = this;
+    let {content,scroll,objectcontent,objectManager} = this;
     let panel = document.createElement("button");
     panel.className = 'togglediv';
     //panel.id="searchpanel"
@@ -317,44 +321,153 @@ content = document.createElement('div');
      this.updateList(filteredSet,this.objectManager.getSelectedObjectNames());
     });
     content.appendChild(searchInput);
+    let selectallButton = document.createElement("button");
+    selectallButton.className = 'button';
+    selectallButton.textContent = 'select-all';
+    selectallButton.value = 'selectall';
+    this.registerEventListener(selectallButton, 'click', () => {
+      this.selectCheckbox(selectallButton.value);
+      });
+    content.appendChild(selectallButton);
+    let deselectallButton = document.createElement("button");
+    deselectallButton.className = 'button';
+    deselectallButton.textContent = 'deselect-all';
+    deselectallButton.value = 'deselectall';
+    this.registerEventListener(deselectallButton, 'click', () => {
+      this.selectCheckbox(deselectallButton.value);
+      });
+    content.appendChild(deselectallButton);
     content.appendChild(document.createElement("br"));
     content.appendChild(document.createElement("br"));
-
   this.updateList(this.objectManager.getObjectNames(),this.objectManager.getSelectedObjectNames());
 
+//  console.log(this.objectManager.getObjectNames());
+    objectcontent.classList.add('perspective-panel-object');
 
+    this.element.appendChild(objectcontent);
     content.appendChild(scroll);
     this.element.appendChild(panel);
     searchpanel.appendChild(content);
     this.element.appendChild(searchpanel);
-    //VISUALIZATION SETTINGS PANEL END;
+   //  OBJECT PANEL START
 
+    //this.element.appendChild(content);
+
+    // VISUALIZATION SETTINGS PANEL END
     this.registerDisposer(viewer.orthographicProjection.changed.add(() => this.scheduleRedraw()));
     this.registerDisposer(viewer.showScaleBar.changed.add(() => this.scheduleRedraw()));
+    this.registerDisposer(viewer.scaleBarOptions.changed.add(() => this.scheduleRedraw()));
     this.registerDisposer(viewer.showSliceViews.changed.add(() => this.scheduleRedraw()));
     this.registerDisposer(viewer.showAxisLines.changed.add(() => this.scheduleRedraw()));
     this.registerDisposer(
         viewer.crossSectionBackgroundColor.changed.add(() => this.scheduleRedraw()));
   }
 
-  private updateList(selectionList: Set<string>, selected: Set<string>){
+  private getObjectDetail(objectId: number){
+    let objectDiv=document.getElementById("objectDiv")!;
+    if(objectDiv!= null){
+      objectDiv.parentNode!.removeChild(objectDiv);
+    }
+    let objectscroll  = document.createElement('div');
+    objectscroll.id='objectDiv';
+    objectscroll.classList.add('perspective-panel-object-container');
+    objectscroll.style.display = "block";
+    let objectPanel = document.createElement("button");
+    objectPanel.className = 'closediv';
+    let name=this.objectManager.objectName(objectId);
+    objectPanel.textContent = name;
+    objectPanel.id = objectId.toString();
+    objectPanel.value = name;
+    objectPanel.addEventListener('click', function(this: HTMLInputElement) {
+      let objectDiv=document.getElementById("objectDiv")!;
+      objectDiv.style.display = "none";
+    });
+    objectscroll.appendChild(objectPanel);
+    let settings = document.createElement("div");
+    settings.className = 'rdiv';
+    let transparentLabel = document.createElement('span');
+    transparentLabel.textContent = "Transparency:";
+    transparentLabel.className="span";
+    settings.appendChild(transparentLabel);
+    let transparencyRange=document.createElement("input");
+    transparencyRange.type="range";
+    transparencyRange.min="1";
+    transparencyRange.max="100";
+    let transparency= this.objectManager.objectAlpha(objectId)*100;
+    transparencyRange.value=transparency.toString();
+    transparencyRange.name="objecttranparency";
+    transparencyRange.id='objecttranparency';
+    let oldThis=this;
+    transparencyRange.addEventListener('change', function(this: HTMLInputElement) {
+      let transparencyInput= <HTMLInputElement>document.getElementById("objecttranparency")!;
+      //console.log(transparencyInput.value);
+      oldThis.objectManager.setObjectAlpha(objectId, parseInt(transparencyInput.value));
+      oldThis.objectManager.display("selected");
+    });
+    settings.appendChild(transparencyRange);
+    settings.appendChild(document.createElement("br"));
+    settings.appendChild(document.createElement("br"));
+    let colorLabel = document.createElement('span');
+    colorLabel.textContent = "Color:";
+    colorLabel.className="span";
+    settings.appendChild(colorLabel);
+    settings.appendChild(document.createTextNode(" "));
+    settings.appendChild(document.createTextNode(" "));
+    let colorPicker=document.createElement("input");
+    colorPicker.type="color";
+    colorPicker.name="objectcolor";
+    colorPicker.id="objectcolor";
+    colorPicker.value=this.objectManager.objectHexColor(objectId);
+
+    colorPicker.addEventListener('change', function(this: HTMLInputElement) {
+      let colorInput= <HTMLInputElement>document.getElementById("objectcolor")!;
+      let color=colorInput.value;
+      //console.log(colorInput.value);
+      oldThis.objectManager.setObjectHexColor(objectId, color);
+      oldThis.objectManager.display("selected");
+    });
+    settings.appendChild(colorPicker);
+    objectscroll.appendChild(settings);
+    this.objectcontent.appendChild(objectscroll);
+
+  }
+  private selectCheckbox(type:string){
+    let checks = document.querySelectorAll('#visualizationDiv' + ' input[type="checkbox"]')!;
+
+    for(let i =0; i< checks.length;i++){
+        let check = <HTMLInputElement> checks[i];
+        if(type=="selectall"){
+            check.checked = true;
+            //console.log(parseInt(check.id));
+            this.objectManager.addSelectedObject(parseInt(check.id));
+        }
+        else{
+            check.checked = false;
+            this.objectManager.removeSelectedObject(parseInt(check.id));
+        }
+    }
+  }
+  private updateList(selectionList: Set<number>, selected: Set<number>){
+    let {objectManager}=this;
     let dl= document.createElement('div');
     dl.id='visualizationDiv';
     dl.className='dl';
     dl.appendChild(document.createElement("br"));
-    for (let data of selectionList) {
+    for (let id of selectionList) {
       let visDiv= document.createElement('div');
       visDiv.className='visDiv';
       let checkbox = document.createElement('input');
       checkbox.type = "checkbox";
-      checkbox.name = data;
-      checkbox.value = data;
-    if(selected!.has(data)){
+      let name=objectManager.objectName(id);
+      checkbox.name = name;
+      checkbox.id = id.toString();
+      checkbox.value = name;
+    if(selected!.has(id)){
       checkbox.checked=true;
     }
-     let {objectManager}=this;
+
      checkbox.addEventListener('change', function(this: HTMLInputElement) {
-      let value = this.value;
+      let value = parseInt(this.id);
        if(!this.checked && objectManager.getObjectNames().has(value)){
          objectManager.removeSelectedObject(value);
        }
@@ -365,8 +478,15 @@ content = document.createElement('div');
     });
       visDiv.appendChild(checkbox);
       let fieldName = document.createElement('span');
-      fieldName.textContent = data;
+      fieldName.textContent = name;
       fieldName.className="span";
+      fieldName.id=id.toString();
+      let oldthis=this;
+      fieldName.addEventListener('click',function(this: HTMLInputElement){
+       let id = parseInt(this.id);
+       //console.log(id);
+       oldthis.getObjectDetail(id);
+      });
       visDiv.appendChild(fieldName);
       dl.appendChild(visDiv);
       dl.appendChild(document.createElement("br"));
@@ -544,6 +664,7 @@ content = document.createElement('div');
       directionalLighting: directional,
       pickIDs: pickIDs,
       emitter: perspectivePanelEmit,
+      objectManager:this.objectManager,
       emitColor: true,
       emitPickID: true,
       alreadyEmittedPickID: false,
@@ -561,6 +682,7 @@ content = document.createElement('div');
     for (let renderLayer of visibleLayers) {
       if (!renderLayer.isTransparent) {
         if (!renderLayer.isAnnotation) {
+        //  console.log(renderLayer.manifestName);
           renderLayer.draw(renderContext);
         } else {
           hasAnnotation = true;
@@ -605,6 +727,7 @@ content = document.createElement('div');
 
     if (hasTransparent) {
       // Draw transparent objects.
+      //console.log("in transparent");
       gl.depthMask(false);
       gl.enable(GL_BLEND);
 
@@ -618,6 +741,7 @@ content = document.createElement('div');
       renderContext.emitPickID = false;
       for (let renderLayer of visibleLayers) {
         if (renderLayer.isTransparent) {
+          //console.log(renderLayer);
           renderLayer.draw(renderContext);
         }
       }
@@ -654,6 +778,7 @@ content = document.createElement('div');
     for (let renderLayer of visibleLayers) {
       renderContext.alreadyEmittedPickID = !renderLayer.isTransparent && !renderLayer.isAnnotation;
       renderLayer.draw(renderContext);
+        //console.log(" hidden function")
     }
     gl.disable(GL_POLYGON_OFFSET_FILL);
 
@@ -667,11 +792,16 @@ content = document.createElement('div');
       gl.enable(GL_BLEND);
       gl.blendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
       const {scaleBarTexture} = this;
+      const options = this.viewer.scaleBarOptions.value;
       const {dimensions} = scaleBarTexture;
-      dimensions.targetLengthInPixels = Math.min(width / 4, 100);
+      dimensions.targetLengthInPixels = Math.min(
+          options.maxWidthFraction * width, options.maxWidthInPixels * options.scaleFactor);
       dimensions.nanometersPerPixel = this.nanometersPerPixel;
-      scaleBarTexture.update();
-      gl.viewport(10, 10, scaleBarTexture.width, scaleBarTexture.height);
+      scaleBarTexture.update(options);
+      gl.viewport(
+          options.leftPixelOffset * options.scaleFactor,
+          options.bottomPixelOffset * options.scaleFactor, scaleBarTexture.width,
+          scaleBarTexture.height);
       this.scaleBarCopyHelper.draw(scaleBarTexture.texture);
       gl.disable(GL_BLEND);
     }
