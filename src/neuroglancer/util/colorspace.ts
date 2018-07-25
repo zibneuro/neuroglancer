@@ -95,4 +95,15 @@ export function rgbToHsv(out: Float32Array, r: number, g: number, b:number): Flo
       }
     }
     return out;
-  };
+  }
+
+export function hexToRgb(out: Float32Array, color: string): Float32Array {
+  if(color.substring(0,1) == '#') {
+  color = color.substring(1);
+  }
+  out[0]=parseInt(color.substring(0,2),16);
+  out[1]=parseInt(color.substring(2,4),16);
+  out[2]=parseInt(color.substring(4),16);
+  return out;
+
+}

@@ -124,6 +124,7 @@ export class DataSourceProvider extends RefCounted {
   }
 
   getDataSource(url: string): [DataSource, string, string] {
+    //console.log(this.dataSources);
     let m = url.match(protocolPattern);
     if (m === null || m[1] === undefined) {
       throw new Error(`Data source URL must have the form "<protocol>://<path>".`);
@@ -210,6 +211,12 @@ export class DataSourceProvider extends RefCounted {
     }
   }
 
+/*  createProject(url: string) {
+    let [dataSource, path] = this.getDataSource(url);
+    return new Promise<string>(resolve => {
+      resolve(dataSource.createProject!(path, cancellationToken));
+    });
+  }*/
   suggestLayerName(url: string) {
     let [dataSource, path] = this.getDataSource(url);
     let suggestor = dataSource.suggestLayerName;

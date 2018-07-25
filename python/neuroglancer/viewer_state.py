@@ -169,14 +169,8 @@ def volume_source(x):
     return text_type(x)
 
 
-class _AnnotationLayerOptions(object):
-    __slots__ = ()
-    annotation_color = annotationColor = wrapped_property('annotationColor', optional(text_type))
-    annotation_fill_opacity = annotationFillOpacity = wrapped_property('annotationFillOpacity', optional(float, 0))
-
-
 @export
-class ImageLayer(Layer, _AnnotationLayerOptions):
+class ImageLayer(Layer):
     __slots__ = ()
 
     def __init__(self, *args, **kwargs):
@@ -202,7 +196,7 @@ def uint64_equivalence_map(obj, _readonly=False):
 
 
 @export
-class SegmentationLayer(Layer, _AnnotationLayerOptions):
+class SegmentationLayer(Layer):
     __slots__ = ()
 
     def __init__(self, *args, **kwargs):
@@ -300,15 +294,16 @@ annotation.supports_readonly = True
 
 
 @export
-class AnnotationLayer(Layer, _AnnotationLayerOptions):
+class AnnotationLayer(Layer):
     __slots__ = ()
 
     def __init__(self, *args, **kwargs):
         super(AnnotationLayer, self).__init__(*args, type='annotation', **kwargs)
 
     source = wrapped_property('source', optional(volume_source))
+    annotation_color = annotationColor = wrapped_property('annotationColor', optional(text_type))
     voxel_size = voxelSize = wrapped_property('voxelSize', optional(array_wrapper(np.float32, 3)))
-    annotations = wrapped_property('annotations', typed_list(annotation))
+    annotations = wrapped_property('annotations', optional(typed_list(annotation)))
 
     @staticmethod
     def interpolate(a, b, t):
@@ -590,8 +585,6 @@ class DataPanelLayout(JsonObjectWrapper):
     type = wrapped_property('type', text_type)
     cross_sections = crossSections = wrapped_property('crossSections',
                                                       CrossSectionMap)
-    orthographic_projection = orthographicProjection = wrapped_property(
-        'orthographicProjection', optional(bool, False))
 
     def __init__(self, json_data=None, _readonly=False, **kwargs):
         if isinstance(json_data, six.string_types):
@@ -599,7 +592,7 @@ class DataPanelLayout(JsonObjectWrapper):
         super(DataPanelLayout, self).__init__(json_data, _readonly=_readonly, **kwargs)
 
     def to_json(self):
-        if len(self.cross_sections) == 0 and not self.orthographic_projection:
+        if len(self.cross_sections) == 0:
             return self.type
         return super(DataPanelLayout, self).to_json()
 

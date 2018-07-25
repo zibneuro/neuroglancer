@@ -70,7 +70,7 @@ export class SegmentationUserLayer extends Base {
         selectedAlpha: trackableAlphaValue(0.5),
         saturation: trackableAlphaValue(1.0),
         notSelectedAlpha: trackableAlphaValue(0),
-        objectAlpha: trackableAlphaValue(1.0),
+        objectAlpha: trackableAlphaValue(0.9),
         clipBounds: SharedWatchableValue.make<Bounds|undefined>(this.manager.worker, undefined),
         hideSegmentZero: new TrackableBoolean(true, true),
         visibleSegments: Uint64Set.makeWithCounterpart(this.manager.worker),

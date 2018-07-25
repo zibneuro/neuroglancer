@@ -183,6 +183,7 @@ export class LocalDataSource extends DataSource {
   getMeshSource(chunkManager: ChunkManager, url: string) {
   return getMeshSource(chunkManager, url);
   }
+
   get3DObject(url: string){
     const [baseUrls, path] = parseSpecialUrl(url);
     return sendHttpRequest(openShardedHttpRequest(baseUrls, path), 'json')

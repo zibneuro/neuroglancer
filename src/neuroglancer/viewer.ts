@@ -51,9 +51,10 @@ import {GL} from 'neuroglancer/webgl/context';
 import {AnnotationToolStatusWidget} from 'neuroglancer/widget/annotation_tool_status';
 import {NumberInputWidget} from 'neuroglancer/widget/number_input_widget';
 import {MousePositionWidget, PositionWidget, VoxelSizeWidget} from 'neuroglancer/widget/position_widget';
+import {TrackableScaleBarOptions} from 'neuroglancer/widget/scale_bar';
 import {makeTextIconButton} from 'neuroglancer/widget/text_icon_button';
 import {RPC} from 'neuroglancer/worker_rpc';
-
+import {CreateProject} from 'neuroglancer/createproject/create_project';
 require('./viewer.css');
 require('neuroglancer/noselect.css');
 require('neuroglancer/ui/button.css');
@@ -88,6 +89,7 @@ const viewerUiControlOptionKeys: (keyof ViewerUIControlConfiguration)[] = [
   'showLayerPanel',
   'showLocation',
   'showAnnotationToolStatus',
+  'createProject',
 ];
 
 const viewerOptionKeys: (keyof ViewerUIOptions)[] =
@@ -99,6 +101,7 @@ export class ViewerUIControlConfiguration {
   showLayerPanel = new TrackableBoolean(true);
   showLocation = new TrackableBoolean(true);
   showAnnotationToolStatus = new TrackableBoolean(true);
+  createProject = new TrackableBoolean(true);
 }
 
 export class ViewerUIConfiguration extends ViewerUIControlConfiguration {
@@ -127,6 +130,7 @@ interface ViewerUIOptions {
   showLocation: boolean;
   showPanelBorders: boolean;
   showAnnotationToolStatus: boolean;
+  createProject:boolean;
 }
 
 export interface ViewerOptions extends ViewerUIOptions, VisibilityPrioritySpecification {
@@ -184,6 +188,7 @@ export class Viewer extends RefCounted implements ViewerState {
   visibleLayerRoles = allRenderLayerRoles();
   showDefaultAnnotations = new TrackableBoolean(true, true);
   crossSectionBackgroundColor = new TrackableRGB(vec3.fromValues(0.5, 0.5, 0.5));
+  scaleBarOptions = new TrackableScaleBarOptions();
   contextMenu: ContextMenu;
 
   layerSelectedValues =
@@ -453,6 +458,17 @@ export class Viewer extends RefCounted implements ViewerState {
       topRow.appendChild(button);
     }
 
+    {
+      const button = makeTextIconButton('+', 'CreateProject');
+      this.registerEventListener(button, 'click', () => {
+        this.showCreateProjectDialog();
+      });
+      this.registerDisposer(new ElementVisibilityFromTrackableBoolean(
+          this.uiControlVisibility.createProject, button));
+      topRow.appendChild(button);
+    }
+
+
     this.registerDisposer(new ElementVisibilityFromTrackableBoolean(
         makeDerivedWatchableValue(
             (...values: boolean[]) => values.reduce((a, b) => a || b, false),
@@ -566,6 +582,10 @@ export class Viewer extends RefCounted implements ViewerState {
       ['Slice View', inputEventBindings.sliceView],
       ['Perspective View', inputEventBindings.perspectiveView],
     ]);
+  }
+
+  showCreateProjectDialog() {
+    new CreateProject();
   }
 
   editJsonState() {
