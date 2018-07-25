@@ -19,7 +19,7 @@ import {PickIDManager} from 'neuroglancer/object_picking';
 import {mat4, vec3} from 'neuroglancer/util/geom';
 import {ShaderModule} from 'neuroglancer/webgl/shader';
 import {SharedObject} from 'neuroglancer/worker_rpc';
-
+import {ObjectManager} from 'neuroglancer/perspective_view/ObjectManager';
 export interface PerspectiveViewRenderContext {
   dataToDevice: mat4;
   lightDirection: vec3;
@@ -27,7 +27,7 @@ export interface PerspectiveViewRenderContext {
   directionalLighting: number;
   pickIDs: PickIDManager;
   emitter: ShaderModule;
-
+  objectManager:ObjectManager;
   /**
    * Specifies whether the emitted color value will be used.
    */
